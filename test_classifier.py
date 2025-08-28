@@ -21,7 +21,7 @@ def test_random_forest_classifier_roc_auc():
     clusters_train = np.random.randint(0, 2, size=len(X_train))
     clusters_test = np.random.randint(0, 2, size=len(X_test))
 
-    model1, model2 = random_forest_classifier(
+    model1, model2, uri1, uri2 = random_forest_classifier(
         X_train[clusters_train == 0],
         y_train[clusters_train == 0],
         X_train[clusters_train == 1],
