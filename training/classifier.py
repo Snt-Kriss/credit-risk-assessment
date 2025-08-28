@@ -4,11 +4,11 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.experimental import enable_halving_search_cv
 from sklearn.model_selection import train_test_split, HalvingRandomSearchCV
-from sklearn.metrics import roc_auc_score, roc_curve, accuracy_score
+from sklearn.metrics import roc_auc_score, roc_curve, accuracy_score, recall_score
 from imblearn.combine import SMOTEENN
 from sklearn.ensemble import RandomForestClassifier
 import joblib
-
+import mlflow
 
 def load_data(filepath: str)-> pd.DataFrame:
     df= pd.read_csv(filepath)
@@ -85,6 +85,10 @@ def second_cluster_data(second_cluster_train: pd.DataFrame,
 
     return X_train2, X_test2, y_train2, y_test2
 
+mlflow.set_tracking_uri("sqlite:///mlflow.db")
+
+mlflow.set_experiment("credit-risk-classifier")
+
 def random_forest_classifier(X_train1: pd.DataFrame, y_train1: pd.DataFrame,
                              X_train2: pd.DataFrame, y_train2: pd.DataFrame):
     model_cluster1= RandomForestClassifier(
@@ -95,8 +99,6 @@ def random_forest_classifier(X_train1: pd.DataFrame, y_train1: pd.DataFrame,
         criterion='entropy'
     )
 
-    model_cluster1.fit(X_train1, y_train1)
-
     model_cluster2= RandomForestClassifier(
         n_estimators=100,
         min_samples_split=5,
@@ -105,11 +107,20 @@ def random_forest_classifier(X_train1: pd.DataFrame, y_train1: pd.DataFrame,
         criterion='gini'
     )
 
-    model_cluster2.fit(X_train2, y_train2)
+    mlflow.sklearn.autolog()
 
-    return model_cluster1, model_cluster2
+    with mlflow.start_run(run_name="cluster_0_model") as run1:
+        model_cluster1.fit(X_train1, y_train1)
+        model1_uri= mlflow.get_artifact_uri("model")
 
-from sklearn.metrics import accuracy_score, roc_auc_score
+    with mlflow.start_run(run_name="cluster_1_model") as run2:
+        model_cluster2.fit(X_train2, y_train2)
+        model2_uri= mlflow.get_artifact_uri("model")
+
+
+    return model_cluster1, model_cluster2, model1_uri, model2_uri
+
+
 
 def evaluate_model(model1, model2, X_test1, y_test1, X_test2, y_test2):
     # Cluster 0
@@ -117,12 +128,20 @@ def evaluate_model(model1, model2, X_test1, y_test1, X_test2, y_test2):
     y_pred_proba1 = model1.predict_proba(X_test1)[:, 1]
     acc1 = accuracy_score(y_test1, y_pred1)
     auc1 = roc_auc_score(y_test1, y_pred_proba1)
+    recall1= recall_score(y_test1, y_pred1)
 
     # Cluster 1
     y_pred2 = model2.predict(X_test2)
     y_pred_proba2 = model2.predict_proba(X_test2)[:, 1]
     acc2 = accuracy_score(y_test2, y_pred2)
     auc2 = roc_auc_score(y_test2, y_pred_proba2)
+    recall2= recall_score(y_test2, y_pred2)
+
+    with mlflow.start_run(run_name="evaluation", nested=True):
+        mlflow.log_metric("accuracy_cluster_0", acc1)
+        mlflow.log_metric("accuracy_cluster_1", acc2)
+        mlflow.log_metric("recall_cluster_0", recall1)
+        mlflow.log_metric("recall_cluster_1", recall2)
 
     return {
         "cluster_0": {"accuracy": acc1, "roc_auc": auc1},
@@ -150,7 +169,7 @@ if __name__=="__main__":
 
     X_train2, X_test2, y_train2, y_test2= second_cluster_data(second_cluster_train, y_train, y_test, X_test)
 
-    model1, model2= random_forest_classifier(X_train1, y_train1, X_train2, y_train2)
+    model1, model2, uri1, uri2= random_forest_classifier(X_train1, y_train1, X_train2, y_train2)
 
     evaluate_model(model1, model2, X_test1, y_test1, X_test2, y_test2)
 

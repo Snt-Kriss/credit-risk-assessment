@@ -23,14 +23,26 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest
+        pip install pytest mlflow
+
+    # Cache MLflow metadata and artifacts
+    - name: Cache MLflow artifacts
+      uses: actions/cache@v3
+      with:
+        path: |
+          mlflow.db
+          mlruns
+        key: ${{ runner.os }}-mlflow-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-mlflow-
 
     - name: Run tests
       run: pytest test_classifier.py
 
-    - name: Train model
+    - name: Train model with MLflow autolog
       run: python -m training.classifier
 
+    # Upload trained models for serving reference
     - name: Upload trained models
       uses: actions/upload-artifact@v4
       with:
@@ -38,3 +50,12 @@ jobs:
         path: |
           model_cluster1.joblib
           model_cluster2.joblib
+
+    # (Optional) Upload MLflow runs so you can download & inspect locally
+    - name: Upload MLflow experiment data
+      uses: actions/upload-artifact@v4
+      with:
+        name: mlflow-tracking
+        path: |
+          mlflow.db
+          mlruns
