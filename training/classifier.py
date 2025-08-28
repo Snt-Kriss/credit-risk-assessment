@@ -35,6 +35,8 @@ def cluster_analysis(credit: pd.DataFrame, df: pd.DataFrame, k: int=2)-> pd.Data
     df_scaled['Risk']= credit['Risk']
     df_scaled.columns= ['Age', 'Job', 'CreditAmount', 'Duration', 'Clusters', 'Risk']
 
+    joblib.dump(kmeans, "cluster_model.joblib")
+
     return df_scaled
 
 
@@ -148,6 +150,17 @@ def evaluate_model(model1, model2, X_test1, y_test1, X_test2, y_test2):
         "cluster_1": {"accuracy": acc2, "roc_auc": auc2},
     }
 
+def register_cluster_model(model, cluster_id):
+    model_name= f"cluster_{cluster_id}_model"
+    with mlflow.start_run() as run:
+        mlflow.sklearn.log_model(
+            sk_model=model,
+            artifact_path="model",
+            registered_model_name=model_name
+        )
+
+    print(f"Registered {model_name} in MLflow")
+
 
 def save_models(model1, model2, path: str= "model_cluster1.joblib", path2: str= "model_cluster2.joblib")-> None:
     joblib.dump(model1, path)
@@ -174,6 +187,9 @@ if __name__=="__main__":
     evaluate_model(model1, model2, X_test1, y_test1, X_test2, y_test2)
 
     save_models(model1, model2)
+
+    register_cluster_model(model1, cluster_id=0)
+    register_cluster_model(model2, cluster_id=1)
 
 
 
