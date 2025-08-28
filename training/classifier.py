@@ -7,6 +7,7 @@ from sklearn.model_selection import train_test_split, HalvingRandomSearchCV
 from sklearn.metrics import roc_auc_score, roc_curve, accuracy_score
 from imblearn.combine import SMOTEENN
 from sklearn.ensemble import RandomForestClassifier
+import joblib
 
 
 def load_data(filepath: str)-> pd.DataFrame:
@@ -129,6 +130,12 @@ def evaluate_model(model1: RandomForestClassifier,
     print(f"Cluster 1 - Accuracy: {acc2:.3f}, ROC AUC: {auc2:.3f}")
 
 
+def save_models(model1, model2, path: str= "model_cluster1.joblib", path2: str= "model_cluster2.joblib")-> None:
+    joblib.dump(model1, path)
+    joblib.dump(model2, path2)
+    print(f"Models saved to {path} and {path2}")
+
+
 if __name__=="__main__":
     df= load_data('./data/german_credit_data.csv')
 
@@ -146,6 +153,8 @@ if __name__=="__main__":
     model1, model2= random_forest_classifier(X_train1, y_train1, X_train2, y_train2)
 
     evaluate_model(model1, model2, X_test1, y_test1, X_test2, y_test2)
+
+    save_models(model1, model2)
 
 
 
