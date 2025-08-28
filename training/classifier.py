@@ -109,25 +109,25 @@ def random_forest_classifier(X_train1: pd.DataFrame, y_train1: pd.DataFrame,
 
     return model_cluster1, model_cluster2
 
-def evaluate_model(model1: RandomForestClassifier, 
-                   model2: RandomForestClassifier, X_test1, y_test1, X_test2, y_test2):
-    
-    y_pred1= model1.predict(X_test1)
-    y_pred_proba= model1.predict_proba(X_test1)[:,1]
+from sklearn.metrics import accuracy_score, roc_auc_score
 
-    acc1= accuracy_score(y_test1, y_pred1)
-    auc1= roc_auc_score(y_test1, y_pred_proba)
+def evaluate_model(model1, model2, X_test1, y_test1, X_test2, y_test2):
+    # Cluster 0
+    y_pred1 = model1.predict(X_test1)
+    y_pred_proba1 = model1.predict_proba(X_test1)[:, 1]
+    acc1 = accuracy_score(y_test1, y_pred1)
+    auc1 = roc_auc_score(y_test1, y_pred_proba1)
 
-    print(f"Cluster 0 - Accuracy: {acc1:.3f}, ROC AUC: {auc1:.3f}")
-
-
+    # Cluster 1
     y_pred2 = model2.predict(X_test2)
     y_pred_proba2 = model2.predict_proba(X_test2)[:, 1]
-
     acc2 = accuracy_score(y_test2, y_pred2)
     auc2 = roc_auc_score(y_test2, y_pred_proba2)
 
-    print(f"Cluster 1 - Accuracy: {acc2:.3f}, ROC AUC: {auc2:.3f}")
+    return {
+        "cluster_0": {"accuracy": acc1, "roc_auc": auc1},
+        "cluster_1": {"accuracy": acc2, "roc_auc": auc2},
+    }
 
 
 def save_models(model1, model2, path: str= "model_cluster1.joblib", path2: str= "model_cluster2.joblib")-> None:

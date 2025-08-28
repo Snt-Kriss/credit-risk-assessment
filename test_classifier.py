@@ -28,22 +28,14 @@ def test_random_forest_classifier_roc_auc():
         y_train[clusters_train == 1],
     )
 
-    metrics1 = evaluate_model(
+    metrics = evaluate_model(
     model1,
+    model2,
     X_test[clusters_test == 0],
     y_test[clusters_test == 0],
-    X_test[clusters_test == 0],   # pass dummy second set
-    y_test[clusters_test == 0]
-)
-
-    metrics2 = evaluate_model(
-        model2,
-        X_test[clusters_test == 1],
-        y_test[clusters_test == 1],
-        X_test[clusters_test == 1],   # pass dummy second set
-        y_test[clusters_test == 1]
+    X_test[clusters_test == 1],
+    y_test[clusters_test == 1]
     )
 
-
-    assert metrics1["roc_auc"] > 0.5, f"Cluster 0 ROC AUC too low: {metrics1['roc_auc']}"
-    assert metrics2["roc_auc"] > 0.5, f"Cluster 1 ROC AUC too low: {metrics2['roc_auc']}"
+    assert metrics["cluster_0"]["roc_auc"] > 0.5, f"Cluster 0 ROC AUC too low: {metrics['cluster_0']['roc_auc']}"
+    assert metrics["cluster_1"]["roc_auc"] > 0.5, f"Cluster 1 ROC AUC too low: {metrics['cluster_1']['roc_auc']}"
